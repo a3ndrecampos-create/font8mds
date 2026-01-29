@@ -1,0 +1,739 @@
+<!DOCTYPE html>
+
+<html lang="pt-BR">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Arena Knights - Final Version</title>
+
+    <link href="https://fonts.googleapis.com/css2?family=Bungee&display=swap" rel="stylesheet">
+
+    <style>
+
+        body { font-family: 'Bungee', cursive; background: #111; margin: 0; display: flex; flex-direction: column; justify-content: center; align-items: center; height: 100vh; overflow: hidden; }
+
+       
+
+        /* Arena e Fundo */
+
+        .arena { width: 800px; height: 500px; background-image: url('assets/Theme.png'); background-size: cover; border: 4px solid #ff0055; position: relative; overflow: hidden; box-shadow: 0 0 50px rgba(255, 0, 85, 0.3); }
+
+       
+
+        /* Texto FIGHT central */
+
+        #txt-fight {
+
+            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%) scale(0);
+
+            color: #fff; font-size: 100px; text-shadow: 0 0 20px #ff0055, 4px 4px 0 #000;
+
+            z-index: 1000; transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); pointer-events: none;
+
+        }
+
+        .show-fight { transform: translate(-50%, -50%) scale(1.2) !important; }
+
+
+
+        /* Barras de Vida */
+
+        .ui-vida { position: absolute; top: 15px; width: 100%; display: flex; justify-content: space-around; z-index: 300; }
+
+        .barra-container { width: 220px; height: 14px; background: #333; border: 2px solid #000; }
+
+        .barra-fill { width: 0%; height: 100%; background: #ff0055; transition: width 0.3s ease; }
+
+
+
+        /* Quadrado de Vitórias */
+
+        .quadrado-vitoria {
+
+            display: inline-block;
+
+            width: 20px;
+
+            height: 20px;
+
+            background: #ff0055;
+
+            color: white;
+
+            font-size: 14px;
+
+            line-height: 20px;
+
+            text-align: center;
+
+            border: 1px solid #000;
+
+            vertical-align: middle;
+
+            margin: 0 5px;
+
+        }
+
+
+
+        /* Personagens */
+
+        .lutador { position: absolute; width: 420px; height: 420px; display: flex; flex-direction: column; justify-content: flex-end; align-items: center; z-index: 10; bottom: 150px; }
+
+        #pos-p1 { left: -500px; }
+
+        #pos-p2 { right: -500px; }
+
+        .sprite-img { width: 100%; height: auto; image-rendering: pixelated; }
+
+
+
+        /* Fila de Espera */
+
+        .container-fila { position: absolute; bottom: 0; width: 100%; height: 100px; background: rgba(0,0,0,0.7); border-top: 3px solid #ff0055; display: flex; align-items: center; padding: 0 10px; z-index: 200; overflow: hidden; }
+
+        #lista-espera { list-style: none; display: flex; gap: 40px; margin: 0; padding: 0; }
+
+        .item-fila { display: flex; flex-direction: column; align-items: center; min-width: 120px; }
+
+        .mini-sprite { width: 160px; image-rendering: pixelated; margin-bottom: -30px; }
+
+        .nome-fila { color: white; font-size: 11px; background: #ff0055; padding: 2px 8px; text-transform: uppercase; }
+
+
+
+        /* Popups de Dano/Cura */
+
+        .popup { position: absolute; font-size: 40px; text-shadow: 2px 2px 0 #000; z-index: 1000; animation: floatUp 0.6s forwards; font-weight: bold; pointer-events: none; }
+
+        @keyframes floatUp { 0% { transform: translateY(0); opacity: 1; } 100% { transform: translateY(-80px); opacity: 0; } }
+
+
+
+        /* Rodapé de Status */
+
+        #bottom-bar { width: 800px; background: #000; padding: 10px; display: flex; justify-content: space-between; border: 1px solid #333; box-sizing: border-box; }
+
+        .btn-config { background: #222; color: gold; border: 1px solid gold; padding: 5px 15px; cursor: pointer; font-family: 'Bungee'; transition: 0.2s; }
+
+        .btn-config:hover { background: gold; color: #000; }
+
+
+
+        /* Modal Painel */
+
+        .modal { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 480px; background: #1a1a1a; border: 2px solid gold; padding: 20px; z-index: 3000; display: none; color: white; box-shadow: 0 0 30px #000; }
+
+        .modal input, .modal select { background: #333; color: #fff; border: 1px solid #555; padding: 5px; font-family: 'Bungee'; }
+
+    </style>
+
+</head>
+
+<body onclick="audioHabilitado = true">
+
+
+
+    <audio id="snd-fight"><source src="assets/fight-292375.mp3" type="audio/mpeg"></audio>
+
+    <audio id="snd-heal"><source src="assets/heal-sfx.mp3" type="audio/mpeg"></audio>
+
+    <audio id="snd-hit"><source src="assets/sword-slice-2-393845.mp3" type="audio/mpeg"></audio>
+
+
+
+    <div class="arena">
+
+        <div id="txt-fight">FIGHT!</div>
+
+        <div class="ui-vida">
+
+            <div class="barra-container"><div class="barra-fill" id="fill-p1"></div></div>
+
+            <div style="color: gold; font-size: 14px; margin-top: -5px;">VERSUS</div>
+
+            <div class="barra-container"><div class="barra-fill" id="fill-p2"></div></div>
+
+        </div>
+
+       
+
+        <div class="lutador" id="pos-p1">
+
+            <div style="position: absolute; top: 195px; width: 100%; text-align: center;">
+
+                <span id="nome-p1" style="color:#fff; text-shadow:2px 2px #000;"></span>
+
+                <div id="win-p1" class="quadrado-vitoria">0</div>
+
+            </div>
+
+            <img src="" id="sprite-p1" class="sprite-img">
+
+        </div>
+
+
+
+        <div class="lutador" id="pos-p2">
+
+            <div style="position: absolute; top: 195px; width: 100%; text-align: center;">
+
+                <div id="win-p2" class="quadrado-vitoria">0</div>
+
+                <span id="nome-p2" style="color:#fff; text-shadow:2px 2px #000;"></span>
+
+            </div>
+
+            <img src="" id="sprite-p2" class="sprite-img" style="transform: scaleX(-1);">
+
+        </div>
+
+
+
+        <div class="container-fila"><ul id="lista-espera"></ul></div>
+
+    </div>
+
+
+
+    <div id="bottom-bar">
+
+        <div id="status-conn" style="color:red; font-size:12px;">● TIKFINITY DESCONECTADO</div>
+
+        <button class="btn-config" onclick="toggleModal()">⚙️ CONFIGURAR COMANDOS</button>
+
+    </div>
+
+
+
+    <div id="configModal" class="modal">
+
+        <h3 style="text-align:center; color:gold; margin-top:0;">PAINEL DE CONTROLE</h3>
+
+        <div style="display:flex; flex-direction:column; gap:10px; margin-bottom:15px;">
+
+            <div style="display:flex; gap:5px;">
+
+                <input type="text" id="cmdInput" placeholder="Ex: !entrar" style="flex:1;">
+
+                <select id="actionSelect">
+
+                    <option value="SPAWN_1">Entrar 1</option>
+
+                    <option value="SPAWN_2">Entrar 2</option>
+
+                    <option value="SPAWN_3">Entrar 3</option>
+
+                    <option value="HEAL_10">Cura 10%</option>
+
+                    <option value="HEAL_30">Cura 30%</option>
+
+                    <option value="HEAL_100">Cura 100%</option>
+
+                    <option value="COMBO">Especial (Costas)</option>
+
+                </select>
+
+                <button onclick="addEvent()" style="cursor:pointer; background:gold; border:none; padding:0 15px;">+</button>
+
+            </div>
+
+        </div>
+
+        <div id="event-list" style="max-height:180px; overflow-y:auto; background:#111; padding:5px; border:1px solid #333;"></div>
+
+        <button onclick="toggleModal()" style="width:100%; margin-top:15px; padding:10px; cursor:pointer; background:#444; color:#fff; border:none;">SALVAR E FECHAR</button>
+
+    </div>
+
+
+
+    <script>
+
+        let hp1 = 0, hp2 = 0, p1Ocupado = false, p2Ocupado = false, audioHabilitado = false;
+
+        let vitoriasP1 = 0, vitoriasP2 = 0;
+
+        let listaEspera = [], lutaIniciada = false, atacando = false;
+
+        let eventMappings = JSON.parse(localStorage.getItem('arena_events')) || {};
+
+
+
+        const state = {
+
+            p1: { action: 'IDLE', frame: 0, pasta: "", skin: "", nome: "" },
+
+            p2: { action: 'IDLE', frame: 0, pasta: "", skin: "", nome: "" }
+
+        };
+
+
+
+        function connectTikFinity() {
+
+            const socket = new WebSocket('ws://localhost:21213/');
+
+            socket.onopen = () => {
+
+                document.getElementById('status-conn').style.color = '#2ecc71';
+
+                document.getElementById('status-conn').innerText = '● TIKFINITY CONECTADO';
+
+            };
+
+            socket.onmessage = (e) => {
+
+                try {
+
+                    const res = JSON.parse(e.data);
+
+                    if (!res.data) return;
+
+                    const user = res.data.nickname || res.data.username;
+
+                    const trigger = (res.event === "chat") ? res.data.comment : (res.event === "gift" ? res.data.giftName : res.event);
+
+                    const action = eventMappings[trigger?.toLowerCase().trim()];
+
+                    if (action) handleAction(action, user);
+
+                } catch(err) { console.error("Erro no processamento:", err); }
+
+            };
+
+            socket.onclose = () => { document.getElementById('status-conn').style.color = 'red'; setTimeout(connectTikFinity, 3000); };
+
+        }
+
+
+
+        function handleAction(action, user) {
+
+            if (action.startsWith("SPAWN_")) {
+
+                const idx = action.split("_")[1];
+
+                if(listaEspera.find(i => i.nome === user) || state.p1.nome === user || state.p2.nome === user) return;
+
+                const novo = { nome: user, pasta: `${idx}_KNIGHT`, skin: `Knight_0${idx}` };
+
+                if (!p1Ocupado) montarLutador('p1', novo);
+
+                else if (!p2Ocupado) montarLutador('p2', novo);
+
+                else { listaEspera.push(novo); atualizarFila(); }
+
+            }
+
+            else if (action.startsWith("HEAL_")) execHeal(user, parseInt(action.split("_")[1]));
+
+            else if (action === "COMBO") especialPorTras(user);
+
+        }
+
+
+
+        function especialPorTras(user) {
+
+            let atk = (state.p1.nome === user) ? 'p1' : (state.p2.nome === user ? 'p2' : null);
+
+            if (!atk || !lutaIniciada || atacando) return;
+
+            let def = (atk === 'p1') ? 'p2' : 'p1';
+
+            atacando = true;
+
+
+
+            const elAtk = document.getElementById(`pos-${atk}`);
+
+            const imgAtk = document.getElementById(`sprite-${atk}`);
+
+
+
+            elAtk.style.transition = "opacity 0.1s";
+
+            elAtk.style.opacity = "0";
+
+
+
+            setTimeout(() => {
+
+                let desloc = (atk === 'p1') ? 200 : -200; // Ajuste de proximidade solicitado
+
+                elAtk.style.transform = `translateX(${desloc}px)`;
+
+                imgAtk.style.transform = (atk === 'p1') ? "scaleX(-1)" : "scaleX(1)";
+
+                elAtk.style.zIndex = "50";
+
+                elAtk.style.opacity = "1";
+
+
+
+                setTimeout(() => {
+
+                    state[atk].action = 'ATTACK'; state[atk].frame = 0;
+
+                    setTimeout(() => {
+
+                        causarDano(def, 30);
+
+                        mostrarPopup(atk, "BACKSTAB!", "gold");
+
+                    }, 250);
+
+
+
+                    setTimeout(() => {
+
+                        elAtk.style.opacity = "0";
+
+                        setTimeout(() => {
+
+                            elAtk.style.transform = "translateX(0px)";
+
+                            imgAtk.style.transform = (atk === 'p1') ? "scaleX(1)" : "scaleX(-1)";
+
+                            elAtk.style.zIndex = "10";
+
+                            elAtk.style.opacity = "1";
+
+                            state[atk].action = 'IDLE';
+
+                            atacando = false;
+
+                        }, 200);
+
+                    }, 600);
+
+                }, 200);
+
+            }, 150);
+
+        }
+
+
+
+        function montarLutador(p, lutador) {
+
+            if (p === 'p1') { p1Ocupado = true; hp1 = 100; vitoriasP1 = 0; document.getElementById('win-p1').innerText = "0"; }
+
+            else { p2Ocupado = true; hp2 = 100; vitoriasP2 = 0; document.getElementById('win-p2').innerText = "0"; }
+
+           
+
+            state[p] = { ...state[p], ...lutador, action: 'WALK', frame: 0 };
+
+            document.getElementById(`nome-${p}`).innerText = lutador.nome;
+
+            document.getElementById(`fill-${p}`).style.width = "100%";
+
+           
+
+            const el = document.getElementById(`pos-${p}`);
+
+            el.style.transition = "none";
+
+            el.style.opacity = "1";
+
+            el.style.transform = "translateX(0px)";
+
+           
+
+            if(p === 'p1') el.style.left = "-500px"; else el.style.right = "-500px";
+
+           
+
+            setTimeout(() => {
+
+                el.style.transition = (p === 'p1') ? "left 4s linear" : "right 4s linear";
+
+                if(p === 'p1') el.style.left = "130px"; else el.style.right = "130px";
+
+            }, 50);
+
+
+
+            setTimeout(() => {
+
+                state[p].action = 'IDLE';
+
+                if(p1Ocupado && p2Ocupado && !lutaIniciada) iniciarLuta();
+
+            }, 4050);
+
+        }
+
+
+
+        function iniciarLuta() {
+
+            const txt = document.getElementById('txt-fight');
+
+            txt.classList.add('show-fight');
+
+            if (audioHabilitado) document.getElementById('snd-fight').play();
+
+            setTimeout(() => { txt.classList.remove('show-fight'); lutaIniciada = true; }, 1000);
+
+        }
+
+
+
+        setInterval(() => {
+
+            if (!lutaIniciada || atacando) return;
+
+            const atk = Math.random() > 0.5 ? 'p1' : 'p2';
+
+            const def = (atk === 'p1') ? 'p2' : 'p1';
+
+            state[atk].action = 'ATTACK'; state[atk].frame = 0;
+
+            setTimeout(() => { if (lutaIniciada && !atacando) causarDano(def, 10); }, 400);
+
+        }, 1500);
+
+
+
+        function causarDano(def, dano) {
+
+            if (def === 'p1') hp1 -= dano; else hp2 -= dano;
+
+            const atual = (def === 'p1' ? hp1 : hp2);
+
+            document.getElementById(`fill-${def}`).style.width = Math.max(0, atual) + "%";
+
+            mostrarPopup(def, `-${dano}`, "#ff0055");
+
+            if (audioHabilitado) { const s = document.getElementById('snd-hit'); s.currentTime = 0; s.play(); }
+
+
+
+            if (atual <= 0) {
+
+                lutaIniciada = false; atacando = false;
+
+                state[def].action = 'DIE'; state[def].frame = 0;
+
+               
+
+                const win = (def === 'p1' ? 'p2' : 'p1');
+
+                state[win].action = 'IDLE'; state[win].frame = 0;
+
+
+
+                // Atualizar Placar no Quadrado
+
+                if(win === 'p1') { vitoriasP1++; document.getElementById('win-p1').innerText = vitoriasP1; }
+
+                else { vitoriasP2++; document.getElementById('win-p2').innerText = vitoriasP2; }
+
+
+
+                setTimeout(() => { execHeal(state[win].nome, 20); }, 500);
+
+                setTimeout(() => removerLutador(def), 2000);
+
+            } else {
+
+                state[def].action = 'HURT'; state[def].frame = 0;
+
+                setTimeout(() => { if(lutaIniciada && state[def].action === 'HURT') state[def].action = 'IDLE'; }, 400);
+
+            }
+
+        }
+
+
+
+        function removerLutador(p) {
+
+            const el = document.getElementById(`pos-${p}`);
+
+            el.style.transition = "opacity 0.8s";
+
+            el.style.opacity = "0";
+
+            setTimeout(() => {
+
+                if (p === 'p1') { p1Ocupado = false; el.style.left = "-500px"; }
+
+                else { p2Ocupado = false; el.style.right = "-500px"; }
+
+                state[p].pasta = "";
+
+                state[p].nome = "";
+
+                if (listaEspera.length > 0) montarLutador(p, listaEspera.shift());
+
+                atualizarFila();
+
+            }, 1000);
+
+        }
+
+
+
+        function execHeal(user, valor) {
+
+            let p = (state.p1.nome === user) ? 'p1' : (state.p2.nome === user ? 'p2' : null);
+
+            if(!p) return;
+
+            if(p === 'p1') hp1 = Math.min(100, hp1 + valor); else hp2 = Math.min(100, hp2 + valor);
+
+            document.getElementById(`fill-${p}`).style.width = (p === 'p1' ? hp1 : hp2) + "%";
+
+            mostrarPopup(p, `+${valor}%`, "#2ecc71");
+
+            if(audioHabilitado) { const s = document.getElementById('snd-heal'); s.currentTime = 0; s.play(); }
+
+        }
+
+
+
+        function atualizarFila() {
+
+            document.getElementById('lista-espera').innerHTML = listaEspera.map(l => `
+
+                <li class="item-fila"><img src="assets/${l.pasta}/${l.skin}__IDLE_000.png" class="mini-sprite"><span class="nome-fila">${l.nome}</span></li>
+
+            `).join('');
+
+        }
+
+
+
+        function mostrarPopup(p, txt, cor) {
+
+            const pop = document.createElement('div');
+
+            pop.className = 'popup'; pop.innerText = txt; pop.style.color = cor;
+
+            const rect = document.getElementById(`pos-${p}`).getBoundingClientRect();
+
+            pop.style.left = (rect.left + 150) + "px"; pop.style.top = (rect.top + 150) + "px";
+
+            document.body.appendChild(pop);
+
+            setTimeout(() => pop.remove(), 600);
+
+        }
+
+
+
+        function toggleModal() {
+
+            const m = document.getElementById('configModal');
+
+            m.style.display = (m.style.display === 'block') ? 'none' : 'block';
+
+            renderEvents();
+
+        }
+
+
+
+        function addEvent() {
+
+            const cmd = document.getElementById('cmdInput').value.trim().toLowerCase();
+
+            const act = document.getElementById('actionSelect').value;
+
+            if (cmd) {
+
+                eventMappings[cmd] = act;
+
+                localStorage.setItem('arena_events', JSON.stringify(eventMappings));
+
+                renderEvents();
+
+                document.getElementById('cmdInput').value = "";
+
+            }
+
+        }
+
+
+
+        function renderEvents() {
+
+            document.getElementById('event-list').innerHTML = Object.entries(eventMappings).map(([cmd, act]) => `
+
+                <div style="display:flex; justify-content:space-between; align-items:center; padding:5px; border-bottom:1px solid #222; font-size:12px;">
+
+                    <span><b style="color:gold;">${cmd}</b> ⮕ ${act}</span>
+
+                    <button onclick="deleteMapping('${cmd}')" style="background:red; color:white; border:none; cursor:pointer;">X</button>
+
+                </div>
+
+            `).join('');
+
+        }
+
+
+
+        function deleteMapping(cmd) {
+
+            delete eventMappings[cmd];
+
+            localStorage.setItem('arena_events', JSON.stringify(eventMappings));
+
+            renderEvents();
+
+        }
+
+
+
+        window.addEventListener('keydown', (e) => {
+
+            if (e.key === '9') {
+
+                handleAction(`SPAWN_${Math.floor(Math.random() * 3) + 1}`, "Bot_" + Math.floor(Math.random() * 99));
+
+            }
+
+            if (e.key === '1' && state.p1.nome) especialPorTras(state.p1.nome);
+
+            if (e.key === '2' && state.p2.nome) especialPorTras(state.p2.nome);
+
+        });
+
+
+
+        window.onload = () => {
+
+            connectTikFinity();
+
+            setInterval(() => {
+
+                ['p1', 'p2'].forEach(p => {
+
+                    if (state[p].pasta === "") return;
+
+                    const s = state[p]; const img = document.getElementById(`sprite-${p}`);
+
+                    img.src = `assets/${s.pasta}/${s.skin}__${s.action}_${String(s.frame).padStart(3, '0')}.png`;
+
+                    if (!(s.action === 'DIE' && s.frame >= 9)) s.frame = (s.frame + 1) % 10;
+
+                });
+
+            }, 80);
+
+        };
+
+    </script>
+
+</body>
+
+</html>
